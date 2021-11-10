@@ -1,0 +1,6 @@
+defaultBaseImage: gcr.io/distroless/base
+builds:
+  env:
+  - GOARCH=amd64
+  - GOOS=linux
+
