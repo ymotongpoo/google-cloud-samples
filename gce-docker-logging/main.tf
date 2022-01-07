@@ -129,7 +129,7 @@ resource "google_compute_instance" "default" {
   project      = var.project_id
   name         = random_pet.machine_name.id
   machine_type = "e2-medium"
-  zone         = "us-central1-a"
+  zone         = var.zone
   tags         = ["yoshifumi-sample"]
   boot_disk {
     initialize_params {
@@ -151,6 +151,8 @@ resource "google_compute_instance" "default" {
           tty: false
           restartPolicy: Always
     EOF
+    google-logging-enabled    = "true"
+    google-monitoring-enabled = "true"
   }
   service_account {
     email  = google_service_account.default.email
