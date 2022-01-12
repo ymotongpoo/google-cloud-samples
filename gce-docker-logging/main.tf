@@ -133,30 +133,32 @@ resource "google_compute_instance" "default" {
   tags         = ["yoshifumi-sample"]
   boot_disk {
     initialize_params {
-      image = "projects/cos-cloud/global/images/cos-stable-93-16623-39-30"
+      image = "projects/cos-cloud/global/images/cos-stable-93-16623-39-40"
     }
+  }
+  labels = {
+    "container-vm" : "cos-stable-93-16623-39-40"
   }
   network_interface {
     network = "default"
     access_config {}
   }
   metadata = {
-    # TODO: add container description here
-    gce-container-declaration = <<EOF
-    spec:
-      containers:
-        - name: ${local.svc_name}
-          image: ${local.image_name}
-          stdin: false
-          tty: false
-          restartPolicy: Always
-    EOF
-    google-logging-enabled    = "true"
-    google-monitoring-enabled = "true"
+    gce-container-declaration = "# DISCLAIMER:\n# This container declaration format is not a public API and may change without\n# notice. Please use gcloud command-line tool or Google Cloud Console to run\n# Containers on Google Compute Engine.\n\nspec:\n  containers:\n  - image: ${local.image_name}\n    name: ${local.svc_name}\n    securityContext:\n      privileged: false\n    stdin: false\n    tty: false\n    volumeMounts: []\n  restartPolicy: Always\n  volumes: []\n",
+    google-logging-enabled    = "true",
+    google-monitoring-enabled = "true",
   }
   service_account {
-    email  = google_service_account.default.email
-    scopes = ["cloud-platform"]
+    email = google_service_account.default.email
+    scopes = [
+      "https://www.googleapis.com/auth/devstorage.read_only",
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring.write",
+      "https://www.googleapis.com/auth/pubsub",
+      "https://www.googleapis.com/auth/service.management.readonly",
+      "https://www.googleapis.com/auth/servicecontrol",
+      "https://www.googleapis.com/auth/trace.append"
+    ]
   }
   depends_on = [null_resource.container]
 }
