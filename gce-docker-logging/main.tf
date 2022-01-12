@@ -125,6 +125,18 @@ resource "null_resource" "container" {
   ]
 }
 
+module "gce-container" {
+  source  = "terraform-google-modules/container-vm/google"
+  version = "~> 2.0"
+
+  container = {
+    image = local.image_name
+    tty   = false
+    stdin = false
+  }
+  restart_policy = "Always"
+}
+
 resource "google_compute_instance" "default" {
   project      = var.project_id
   name         = random_pet.machine_name.id
@@ -144,9 +156,9 @@ resource "google_compute_instance" "default" {
     access_config {}
   }
   metadata = {
-    gce-container-declaration = "# DISCLAIMER:\n# This container declaration format is not a public API and may change without\n# notice. Please use gcloud command-line tool or Google Cloud Console to run\n# Containers on Google Compute Engine.\n\nspec:\n  containers:\n  - image: ${local.image_name}\n    name: ${local.svc_name}\n    securityContext:\n      privileged: false\n    stdin: false\n    tty: false\n    volumeMounts: []\n  restartPolicy: Always\n  volumes: []\n",
-    google-logging-enabled    = "true",
-    google-monitoring-enabled = "true",
+    gce-container-declaration = module.gce-container.metadata_value
+    google-logging-enabled    = "true"
+    google-monitoring-enabled = "true"
   }
   service_account {
     email = google_service_account.default.email
