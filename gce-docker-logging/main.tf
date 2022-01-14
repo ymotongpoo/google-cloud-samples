@@ -35,9 +35,13 @@ terraform {
   }
 }
 
-provider "google" {}
+provider "google" {
+  credentials = file("${var.credentaial_key_path}")
+}
 
-provider "google-beta" {}
+provider "google-beta" {
+  credentials = file("${var.credentaial_key_path}")
+}
 
 provider "random" {}
 
@@ -45,6 +49,12 @@ variable "project_id" {
   type        = string
   description = "Google Cloud Project ID"
   default     = "OVERRIDE_DEFAULT_VALUE_WITH_YOUR_PROJECT_ID"
+}
+
+variable "credentaial_key_path" {
+  type        = string
+  description = "Path to the JSON key file for the Google Cloud service account"
+  default     = "OVERRIDE_DEFAULT_VALUE_WITH_YOUR_CREDENTIAL_KEY_PATH"
 }
 
 variable "zone" {
@@ -101,6 +111,21 @@ resource "google_artifact_registry_repository_iam_member" "registry" {
   role       = "roles/artifactregistry.repoAdmin"
   member     = "serviceAccount:${google_service_account.default.email}"
   depends_on = [google_project_service.required_service]
+}
+
+locals {
+  required_roles = [
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/compute.osLogin",
+  ]
+}
+
+resource "google_project_iam_member" "default" {
+  project  = var.project_id
+  for_each = toset(local.required_roles)
+  role     = each.value
+  member   = "serviceAccount:${google_service_account.default.email}"
 }
 
 

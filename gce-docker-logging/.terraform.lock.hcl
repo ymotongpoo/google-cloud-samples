@@ -6,6 +6,7 @@ provider "registry.terraform.io/hashicorp/google" {
   constraints = "~> 4.0"
   hashes = [
     "h1:58TxYMsqoL/7LneWzT/wzXiehf6RtO0UICjqNc71Re8=",
+    "h1:MWHx6G+emVNvPyxxLCpEEco5F7eoRzX9Tp9lbtO/PmI=",
     "zh:0db8d3e7cc68ddd70a75c72334908b60a875062162c5e8a78bb9e7c0060def64",
     "zh:2ed5ac0301e6382589353402b11aed8ded08bfad425016a508523e18e8766424",
     "zh:3abcaf9439bc60b7666cfc257af8bbe555a90b9692972bc46e84b2d96189bf63",
@@ -23,6 +24,7 @@ provider "registry.terraform.io/hashicorp/google" {
 provider "registry.terraform.io/hashicorp/google-beta" {
   version = "4.5.0"
   hashes = [
+    "h1:11A4fme9royApN02DkA/yd9iz/WkiQATetWbraiz6rY=",
     "h1:umFITzEN9u2Cn1XW0Dl/EUY2SwqwqqbERVZubJlRRsk=",
     "zh:06bd1685e81f8d12ac50a673910e662624653f891177d04bb20e13d0a6c468c6",
     "zh:0ee25c4e64e624ed532d2222557c2f4d35856e532164ba8b07caac267c410006",
@@ -42,6 +44,7 @@ provider "registry.terraform.io/hashicorp/local" {
   version     = "2.1.0"
   constraints = "~> 2.1"
   hashes = [
+    "h1:EYZdckuGU3n6APs97nS2LxZm3dDtGqyM4qaIvsmac8o=",
     "h1:KfieWtVyGWwplSoLIB5usKAUnrIkDQBkWaR5TI+4WYg=",
     "zh:0f1ec65101fa35050978d483d6e8916664b7556800348456ff3d09454ac1eae2",
     "zh:36e42ac19f5d68467aacf07e6adcf83c7486f2e5b5f4339e9671f68525fc87ab",
@@ -61,6 +64,7 @@ provider "registry.terraform.io/hashicorp/null" {
   version     = "3.1.0"
   constraints = "~> 3.1"
   hashes = [
+    "h1:vpC6bgUQoJ0znqIKVFevOdq+YQw42bRq0u+H3nto8nA=",
     "h1:xhbHC6in3nQryvTQBWKxebi3inG5OCgHgc4fRxL0ymc=",
     "zh:02a1675fd8de126a00460942aaae242e65ca3380b5bb192e8773ef3da9073fd2",
     "zh:53e30545ff8926a8e30ad30648991ca8b93b6fa496272cd23b26763c8ee84515",
@@ -80,6 +84,7 @@ provider "registry.terraform.io/hashicorp/random" {
   version     = "3.1.0"
   constraints = "~> 3.1"
   hashes = [
+    "h1:BZMEPucF+pbu9gsPk0G0BHx7YP04+tKdq2MrRDF1EDM=",
     "h1:rKYu5ZUbXwrLG1w81k7H3nce/Ys6yAxXhWcbtk36HjY=",
     "zh:2bbb3339f0643b5daa07480ef4397bd23a79963cc364cdfbb4e86354cb7725bc",
     "zh:3cd456047805bf639fbf2c761b1848880ea703a054f76db51852008b11008626",
