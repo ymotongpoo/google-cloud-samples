@@ -70,6 +70,7 @@ locals {
   required_roles = [
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
+    "roles/compute.instanceAdmin",
     "roles/compute.osLogin",
   ]
 }
@@ -87,7 +88,7 @@ resource "google_service_account" "default" {
 
 resource "google_project_service" "required_service" {
   project            = var.project_id
-  for_each           = toset(local.enable_services)
+  for_each           = toset(local.required_services)
   service            = "${each.value}.googleapis.com"
   disable_on_destroy = false
 }
@@ -108,7 +109,7 @@ resource "google_compute_instance" "default" {
   tags         = ["yoshifumi-sample"]
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-11"
+      image = "ubuntu-os-cloud/ubuntu-2004-lts"
     }
   }
   network_interface {
@@ -131,6 +132,9 @@ resource "google_compute_instance" "default" {
       "https://www.googleapis.com/auth/trace.append"
     ]
   }
-  depends_on = [null_resource.container]
+  depends_on = [
+    google_project_service.required_service,
+    google_project_iam_member.default,
+  ]
 }
 

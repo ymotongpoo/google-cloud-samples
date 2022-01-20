@@ -1,33 +1,68 @@
-# Copyright 2022 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+#cloud-config
 timezone: Asia/Tokyo
 locale: en_US.UTF-8
-pacakges:
-  - ["nginx", ""]
-pacakge_update: true
-pacakge_upgrade: true
+packages:
+  - nginx
+package_update: true
+package_upgrade: true
 
-# TODO(ymotongpoo): add more commands for config
 runcmd:
   - curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
   - bash add-google-cloud-ops-agent-repo.sh --also-install
   - apt-get update
+  - apt-get upgrade -y
+  - systemctl enable nginx
+  - systemctl start nginx
+  - systemctl enable google-cloud-ops-agent
+  - systemctl start google-cloud-ops-agent
 
-# TODO(ymotongpoo): add config for Ops Agent
 # https://cloud.google.com/blog/products/operations/use-ansible-to-deploy-the-google-cloud-ops-agent
 write_files:
+  - path: /etc/google-cloud-ops-agent/config.yaml
+    permissions: 0644
+    owner: root
+    content: |
+      logging:
+        receivers:
+          nginx_default_access:
+            type: nginx_access
+          nginx_default_error:
+            type: nginx_error
+        service:
+          pipelines:
+            nginx:
+              receivers:
+                - nginx_default_access
+                - nginx_default_error
+      metrics:
+        receivers:
+          nginx_metrics:
+            type: nginx
+            stub_status_url: http://127.0.0.1:80/status
+            collection_interval: 60s
+        service:
+          pipelines:
+            nginx_pipeline:
+              receivers:
+                - nginx_metrics
+
+  - path: /etc/nginx/conf.d/status.conf
+    permissions: 0644
+    owner: root
+    content: |
+      server {
+          listen 80;
+          server_name 127.0.0.1;
+          location /status {
+              stub_status on;
+              access_log off;
+              allow 127.0.0.1;
+              deny all;
+          }
+          location / {
+            root /dev/null;
+          }
+      }
 
 # reboot after all configurations
 power_state:
