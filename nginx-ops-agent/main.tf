@@ -35,6 +35,7 @@ terraform {
   }
 }
 
+# The service account used here is "roles/owner" for the project
 provider "google" {
   credentials = file("${var.credentaial_key_path}")
 }
@@ -101,12 +102,29 @@ resource "google_project_iam_member" "default" {
   depends_on = [google_project_service.required_service]
 }
 
+locals {
+  server_tag = "allow-http-server"
+}
+
+resource "google_compute_firewall" "http" {
+  name    = local.server_tag
+  project = var.project_id
+  network = "default"
+  allow {
+    protocol = "tcp"
+    ports    = ["80"]
+  }
+
+  source_tags = [local.server_tag]
+  target_tags = [local.server_tag]
+}
+
 resource "google_compute_instance" "default" {
   project      = var.project_id
   name         = random_pet.machine_name.id
   machine_type = "e2-medium"
   zone         = var.zone
-  tags         = ["yoshifumi-sample"]
+  tags         = [local.server_tag]
   boot_disk {
     initialize_params {
       image = "ubuntu-os-cloud/ubuntu-2004-lts"
@@ -117,8 +135,7 @@ resource "google_compute_instance" "default" {
     access_config {}
   }
   metadata = {
-    google-logging-enabled = "true"
-    user-data              = file("./cloud-init.yaml")
+    user-data = file("./cloud-init.yaml")
   }
   service_account {
     email = google_service_account.default.email
@@ -135,6 +152,40 @@ resource "google_compute_instance" "default" {
   depends_on = [
     google_project_service.required_service,
     google_project_iam_member.default,
+    google_compute_firewall.http,
   ]
 }
 
+# Add uptime check to trigger status request connection
+resource "google_monitoring_uptime_check_config" "default" {
+  project      = var.project_id
+  display_name = "NGINX Uptime Check"
+  timeout      = "10s"
+  period       = "60s"
+  http_check {
+    path           = "/status"
+    port           = "80"
+    request_method = "GET"
+  }
+  monitored_resource {
+    type = "gce_instance"
+    labels = {
+      project_id  = var.project_id
+      instance_id = google_compute_instance.default.instance_id,
+      zone        = google_compute_instance.default.zone,
+    }
+  }
+  depends_on = [
+    google_project_service.required_service,
+    google_compute_instance.default
+  ]
+}
+
+# Create a dedicated dashboard for NGINX monitoring
+resource "google_monitoring_dashboard" "nginx-dash" {
+  project        = var.project_id
+  dashboard_json = file("./dashboard.json")
+  depends_on     = [google_project_service.required_service]
+}
+
+# Create a uptime check for the NGINX instance

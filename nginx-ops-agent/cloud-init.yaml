@@ -1,4 +1,21 @@
 #cloud-config
+
+# Copyright 2022 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+final_message: "Ops Agent with NGINX sample instance set up via cloud-init: complete"
+
 timezone: Asia/Tokyo
 locale: en_US.UTF-8
 packages:
@@ -11,6 +28,7 @@ runcmd:
   - bash add-google-cloud-ops-agent-repo.sh --also-install
   - apt-get update
   - apt-get upgrade -y
+  - apt-get autoremove
   - systemctl enable nginx
   - systemctl start nginx
   - systemctl enable google-cloud-ops-agent
@@ -46,22 +64,24 @@ write_files:
               receivers:
                 - nginx_metrics
 
+  # NOTE: this configuration is totally for testing purpose.
+  # *** DO NOT KEEP RUNNING THIS INSTANCE ***
   - path: /etc/nginx/conf.d/status.conf
     permissions: 0644
     owner: root
     content: |
       server {
-          listen 80;
-          server_name 127.0.0.1;
-          location /status {
-              stub_status on;
-              access_log off;
-              allow 127.0.0.1;
-              deny all;
-          }
-          location / {
-            root /dev/null;
-          }
+        listen 80;
+        server_name 127.0.0.1;
+        location /status {
+          stub_status on;
+          access_log off;
+          allow 127.0.0.1;
+          deny all;
+        }
+        location / {
+          root /dev/null;
+        }
       }
 
 # reboot after all configurations
