@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "autoinst"
+version = "0.1.0"
+description = ""
+authors = ["Yoshi Yamaguchi <yoshifumi@google.com>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+Flask = "^2.0"
+opentelemetry-instrumentation-flask = "^0.28b1"
+opentelemetry-exporter-jaeger = "^1.9.1"
+opentelemetry-sdk = "^1.9.1"
+opentelemetry-exporter-gcp-trace = "^1.1.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+app = 'app.main:main'
