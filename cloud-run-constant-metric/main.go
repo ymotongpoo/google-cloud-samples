@@ -25,6 +25,7 @@ import (
 
 	mexporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric"
 
+	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/metric/controller/basic"
@@ -93,21 +94,37 @@ func init() {
 }
 
 func main() {
+	ctx := context.Background()
+
+	// 1. Create an exporter for Cloud Monitoring
 	opts := []mexporter.Option{
 		mexporter.WithProjectID("development-215403"),
 		mexporter.WithInterval(10 * time.Second),
 	}
-	resOpt := basic.WithResource(resource.NewWithAttributes(
+
+	// 2. Create resource
+	cloudRun := gcp.NewCloudRun()
+	cloudRunResource, err := cloudRun.Detect(ctx)
+	if err != nil {
+		log.Fatalf("failed to detect Cloud Run resource", err)
+	}
+	cloudRunResOpt := basic.WithResource(cloudRunResource)
+
+	otherResOpt := basic.WithResource(resource.NewWithAttributes(
 		semconv.SchemaURL,
 		attribute.String("runtime", "cloud-run"),
 		attribute.String("language", "go"),
 	))
-	pusher, err := mexporter.InstallNewPipeline(opts, resOpt)
+	controllerOpts := []basic.Option{cloudRunResOpt, otherResOpt}
+
+	// 3. Create a metric.Provider
+	pusher, err := mexporter.InstallNewPipeline(opts, controllerOpts...)
 	if err != nil {
-		log.Fatalf("Failed to establish pipeline: %v", err)
+		log.Fatalf("failed to establish pipeline: %v", err)
 	}
-	ctx := context.Background()
 	defer pusher.Stop(ctx)
+
+	// 4. Create a meter
 	meter := pusher.Meter("cloudmonitoring/cloudrun")
 	sinCallback := func(_ context.Context, result metric.Float64ObserverResult) {
 		sin := wf.getSin()
@@ -117,9 +134,10 @@ func main() {
 		cos := wf.getCos()
 		result.Observe(cos)
 	}
+
+	// 5. Cerate measure
 	metric.Must(meter).NewFloat64GaugeObserver("wave_sin", sinCallback)
 	metric.Must(meter).NewFloat64GaugeObserver("wave_cos", cosCallback)
-
 	c = metric.Must(meter).NewInt64Counter("simple_counter")
 	req = metric.Must(meter).NewInt64Counter("simple_request")
 	go recordWave(wf)
