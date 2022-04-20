@@ -16,6 +16,7 @@
 
 PROJECT_ID=$(gcloud config get-value project)
 KO_DOCKER_REPO="gcr.io/${PROJECT_ID}/wave"
+SERVICE="otel-always-on-metric"
 
 if ! command -v ko &> /dev/null;
 then
@@ -24,9 +25,31 @@ then
   exit 1
 fi
 
-gcloud beta run deploy otel-always-on-metric \
+region=$(gcloud config get-value run/region)
+if [ -z "${region}" ];
+then
+  echo "Cloud Run region is not set. Use default: asia-east1"
+  region="asia-east1"
+fi
+
+existing=$(gcloud run services list --format="value(status.url)" --filter="metadata.name=${SERVICE}")
+if [ $? -ne 0 ];
+then
+  echo "Failed to run 'gcloud run services list'"
+  exit 1
+fi
+
+if [ -n "${existing}" ];
+then
+  echo "Service ${SERVICE} already exists. Delete it first."
+  gcloud run services delete "${SERVICE}" --region="${region}" --quiet
+fi
+
+gcloud beta run deploy "${SERVICE}" \
+--region="${region}" \
 --image=$(ko publish ko://wave) \
 --no-cpu-throttling \
---ingress=internal \
 --allow-unauthenticated \
 --min-instances=1
+
+gcloud run services list --format="value(status.url)" --filter="metadata.name=${SERVICE}"
