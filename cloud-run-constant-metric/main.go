@@ -25,11 +25,9 @@ import (
 
 	mexporter "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric"
 
+	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/sdk/metric/controller/basic"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 const (
@@ -92,34 +90,51 @@ func init() {
 	wf = newWaveObservedFloat(1.0*magnifier, 0.0*magnifier)
 }
 
+var CommonAttributes []attribute.KeyValue
+
 func main() {
+	ctx := context.Background()
+
+	// 1. Create an exporter for Cloud Monitoring
 	opts := []mexporter.Option{
 		mexporter.WithProjectID("development-215403"),
 		mexporter.WithInterval(10 * time.Second),
 	}
-	resOpt := basic.WithResource(resource.NewWithAttributes(
-		semconv.SchemaURL,
+
+	// 2. Create resource
+	cloudRun := gcp.NewCloudRun()
+	cloudRunResource, err := cloudRun.Detect(ctx)
+	if err != nil {
+		log.Fatalf("failed to detect Cloud Run resource", err)
+	}
+
+	CommonAttributes = []attribute.KeyValue{
 		attribute.String("runtime", "cloud-run"),
 		attribute.String("language", "go"),
-	))
-	pusher, err := mexporter.InstallNewPipeline(opts, resOpt)
-	if err != nil {
-		log.Fatalf("Failed to establish pipeline: %v", err)
 	}
-	ctx := context.Background()
+	CommonAttributes = append(CommonAttributes, cloudRunResource.Attributes()...)
+
+	// 3. Create a metric.Provider
+	pusher, err := mexporter.InstallNewPipeline(opts)
+	if err != nil {
+		log.Fatalf("failed to establish pipeline: %v", err)
+	}
 	defer pusher.Stop(ctx)
+
+	// 4. Create a meter
 	meter := pusher.Meter("cloudmonitoring/cloudrun")
 	sinCallback := func(_ context.Context, result metric.Float64ObserverResult) {
 		sin := wf.getSin()
-		result.Observe(sin)
+		result.Observe(sin, CommonAttributes...)
 	}
 	cosCallback := func(_ context.Context, result metric.Float64ObserverResult) {
 		cos := wf.getCos()
-		result.Observe(cos)
+		result.Observe(cos, CommonAttributes...)
 	}
+
+	// 5. Cerate measure
 	metric.Must(meter).NewFloat64GaugeObserver("wave_sin", sinCallback)
 	metric.Must(meter).NewFloat64GaugeObserver("wave_cos", cosCallback)
-
 	c = metric.Must(meter).NewInt64Counter("simple_counter")
 	req = metric.Must(meter).NewInt64Counter("simple_request")
 	go recordWave(wf)
@@ -145,14 +160,14 @@ func recordWave(wf *waveObserveFloat) {
 func recordCounter(ctx context.Context, c metric.Int64Counter) {
 	t := time.NewTicker(1 * time.Second)
 	for range t.C {
-		c.Add(ctx, 1)
+		c.Add(ctx, 1, CommonAttributes...)
 	}
 }
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	sin, cos := wf.getSin(), wf.getCos()
-	req.Add(context.Background(), 1)
+	req.Add(context.Background(), 1, CommonAttributes...)
 	w.Write([]byte(fmt.Sprintf("sin: %v, cos: %v", sin, cos)))
 }
 
